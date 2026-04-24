@@ -37,6 +37,7 @@ import {
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
 import {
+  AUTO_CHAT_MODEL_ID,
   type ChatModel,
   chatModels,
   DEFAULT_CHAT_MODEL,
@@ -66,6 +67,18 @@ function setCookie(name: string, value: string) {
   const maxAge = 60 * 60 * 24 * 365;
   // biome-ignore lint/suspicious/noDocumentCookie: needed for client-side cookie setting
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}`;
+}
+
+function getModelProviderKey(model: Pick<ChatModel, "id" | "provider">) {
+  if (model.id === AUTO_CHAT_MODEL_ID) {
+    return null;
+  }
+
+  if (model.id.includes("/")) {
+    return model.id.split("/")[0];
+  }
+
+  return model.provider.toLowerCase();
 }
 
 function PureMultimodalInput({
@@ -419,7 +432,7 @@ function PureMultimodalInput({
       </div>
 
       <PromptInput
-        className="[&>div]:rounded-2xl [&>div]:border [&>div]:border-border/30 [&>div]:bg-card/70 [&>div]:shadow-[var(--shadow-composer)] [&>div]:transition-shadow [&>div]:duration-300 [&>div]:focus-within:shadow-[var(--shadow-composer-focus)]"
+        className="[&>div]:rounded-[1.6rem] [&>div]:border [&>div]:border-border/35 [&>div]:bg-card/80 [&>div]:backdrop-blur-xl [&>div]:shadow-[var(--shadow-composer)] [&>div]:transition-shadow [&>div]:duration-300 [&>div]:focus-within:shadow-[var(--shadow-composer-focus)]"
         onSubmit={() => {
           if (input.startsWith("/")) {
             const query = input.slice(1).trim();
@@ -473,7 +486,7 @@ function PureMultimodalInput({
           </div>
         )}
         <PromptInputTextarea
-          className="min-h-24 text-[13px] leading-relaxed px-4 pt-3.5 pb-1.5 placeholder:text-muted-foreground/35"
+          className="min-h-24 px-4 pt-3.5 pb-1.5 text-[13px] leading-relaxed placeholder:text-muted-foreground/38"
           data-testid="multimodal-input"
           onChange={handleInput}
           onKeyDown={(e) => {
@@ -510,7 +523,9 @@ function PureMultimodalInput({
             }
           }}
           placeholder={
-            editingMessage ? "Edit your message..." : "Ask anything..."
+            editingMessage
+              ? "Refine this message..."
+              : "Ask, build, inspect, or upload..."
           }
           ref={textareaRef}
           value={input}
@@ -649,7 +664,7 @@ function PureModelSelectorCompact({
     activeModels.find((m: ChatModel) => m.id === selectedModelId) ??
     activeModels.find((m: ChatModel) => m.id === DEFAULT_CHAT_MODEL) ??
     activeModels[0];
-  const [provider] = selectedModel.id.split("/");
+  const provider = getModelProviderKey(selectedModel);
 
   return (
     <ModelSelector onOpenChange={setOpen} open={open}>
@@ -659,7 +674,7 @@ function PureModelSelectorCompact({
           data-testid="model-selector"
           variant="ghost"
         >
-          {provider && <ModelSelectorLogo provider={provider} />}
+          {provider ? <ModelSelectorLogo provider={provider} /> : null}
           <ModelSelectorName>{selectedModel.name}</ModelSelectorName>
         </Button>
       </ModelSelectorTrigger>
@@ -716,6 +731,7 @@ function PureModelSelectorCompact({
               moonshotai: "Moonshot",
               morph: "Morph",
               nvidia: "Nvidia",
+              ollama: "Ollama",
               openai: "OpenAI",
               perplexity: "Perplexity",
               "prime-intellect": "Prime Intellect",
@@ -734,7 +750,7 @@ function PureModelSelectorCompact({
                 key={key}
               >
                 {grouped[key].map(({ model, curated }) => {
-                  const logoProvider = model.id.split("/")[0];
+                  const logoProvider = getModelProviderKey(model);
                   return (
                     <ModelSelectorItem
                       className={cn(
@@ -761,7 +777,9 @@ function PureModelSelectorCompact({
                       }}
                       value={model.id}
                     >
-                      <ModelSelectorLogo provider={logoProvider} />
+                      {logoProvider ? (
+                        <ModelSelectorLogo provider={logoProvider} />
+                      ) : null}
                       <ModelSelectorName>{model.name}</ModelSelectorName>
                       <div className="ml-auto flex items-center gap-2 text-foreground/70">
                         {capabilities?.[model.id]?.tools && (

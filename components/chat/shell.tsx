@@ -177,11 +177,12 @@ export function ChatShell() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Activate AI Gateway</AlertDialogTitle>
+            <AlertDialogTitle>Enable AI Gateway Access</AlertDialogTitle>
             <AlertDialogDescription>
-              This application requires{" "}
-              {process.env.NODE_ENV === "production" ? "the owner" : "you"} to
-              activate Vercel AI Gateway.
+              This model path requires AI Gateway credentials.{" "}
+              {process.env.NODE_ENV === "production" ? "The owner" : "You"} can
+              open the setup page and add billing if the selected gateway model
+              is meant to stay enabled.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -195,7 +196,7 @@ export function ChatShell() {
                 window.location.href = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`;
               }}
             >
-              Activate
+              Open setup
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
-import { VercelIcon } from "./icons";
+import { LingJingLogo } from "./icons";
 import { VisibilitySelector, type VisibilityType } from "./visibility-selector";
 
 function PureChatHeader({
@@ -24,7 +24,7 @@ function PureChatHeader({
   }
 
   return (
-    <header className="sticky top-0 flex h-14 items-center gap-2 bg-sidebar px-3">
+    <header className="sticky top-0 flex h-14 items-center gap-2 border-b border-sidebar-border/60 bg-sidebar/85 px-3 backdrop-blur-xl">
       <Button
         className="md:hidden"
         onClick={toggleSidebar}
@@ -35,13 +35,25 @@ function PureChatHeader({
       </Button>
 
       <Link
-        className="flex size-8 items-center justify-center rounded-lg md:hidden"
-        href="https://vercel.com/templates/next.js/chatbot"
-        rel="noopener noreferrer"
-        target="_blank"
+        className="flex size-8 items-center justify-center rounded-xl border border-primary/20 bg-gradient-to-br from-primary/90 to-cyan-300 text-primary-foreground shadow-[var(--shadow-card)] md:hidden"
+        href="/"
       >
-        <VercelIcon size={14} />
+        <LingJingLogo size={14} />
       </Link>
+
+      <div className="hidden items-center gap-3 md:flex">
+        <div className="flex size-8 items-center justify-center rounded-xl border border-primary/20 bg-gradient-to-br from-primary/90 to-cyan-300 text-primary-foreground shadow-[var(--shadow-card)]">
+          <LingJingLogo size={14} />
+        </div>
+        <div className="leading-tight">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/55">
+            {"\u7075\u5883"}
+          </div>
+          <div className="text-[13px] text-sidebar-foreground/80">
+            Dark AI workspace
+          </div>
+        </div>
+      </div>
 
       {!isReadonly && (
         <VisibilitySelector
@@ -50,19 +62,9 @@ function PureChatHeader({
         />
       )}
 
-      <Button
-        asChild
-        className="hidden rounded-lg bg-foreground px-4 text-background hover:bg-foreground/90 md:ml-auto md:flex"
-      >
-        <Link
-          href="https://vercel.com/templates/next.js/chatbot"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          <VercelIcon size={16} />
-          Deploy with Vercel
-        </Link>
-      </Button>
+      <div className="ml-auto hidden rounded-full border border-sidebar-border/70 bg-background/75 px-3 py-1.5 text-[12px] text-sidebar-foreground/70 shadow-[var(--shadow-card)] md:flex">
+        Local models + DashScope
+      </div>
     </header>
   );
 }

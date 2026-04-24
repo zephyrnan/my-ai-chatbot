@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  MessageSquareIcon,
   PanelLeftIcon,
   PenSquareIcon,
   TrashIcon,
@@ -42,6 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
+import { LingJingLogo } from "./icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
@@ -70,14 +70,26 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         <SidebarHeader className="pb-0 pt-3">
           <SidebarMenu>
             <SidebarMenuItem className="flex flex-row items-center justify-between">
-              <div className="group/logo relative flex items-center justify-center">
+              <div className="group/logo relative flex items-center gap-2">
                 <SidebarMenuButton
                   asChild
-                  className="size-8 !px-0 items-center justify-center group-data-[collapsible=icon]:group-hover/logo:opacity-0"
-                  tooltip="Chatbot"
+                  className="h-10 !px-0 items-center justify-center gap-0 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:group-hover/logo:opacity-0"
+                  tooltip="\u7075\u5883"
                 >
                   <Link href="/" onClick={() => setOpenMobile(false)}>
-                    <MessageSquareIcon className="size-4 text-sidebar-foreground/50" />
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-8 items-center justify-center rounded-2xl border border-sidebar-primary/25 bg-gradient-to-br from-sidebar-primary to-cyan-300 text-sidebar-primary-foreground shadow-[var(--shadow-glow)]">
+                        <LingJingLogo size={15} />
+                      </div>
+                      <div className="flex flex-col text-left group-data-[collapsible=icon]:hidden">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/55">
+                          LINGJING
+                        </span>
+                        <span className="text-[13px] font-medium text-sidebar-foreground">
+                          {"\u7075\u5883"}
+                        </span>
+                      </div>
+                    </div>
                   </Link>
                 </SidebarMenuButton>
                 <Tooltip>
@@ -106,7 +118,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    className="h-8 rounded-lg border border-sidebar-border text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    className="h-9 rounded-xl border border-sidebar-border/70 bg-sidebar-primary text-[13px] text-sidebar-primary-foreground shadow-[var(--shadow-card)] transition-all duration-150 hover:bg-sidebar-primary/90 hover:shadow-[var(--shadow-float)]"
                     onClick={() => {
                       setOpenMobile(false);
                       router.push("/");
@@ -120,7 +132,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 {user && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
+                      className="rounded-xl text-sidebar-foreground/45 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setShowDeleteAllDialog(true)}
                       tooltip="Delete All Chats"
                     >

@@ -14,10 +14,7 @@ export async function GET(request: Request) {
   const chatId = searchParams.get("chatId");
 
   if (!chatId) {
-    return new ChatbotError(
-      "bad_request:api",
-      "Parameter chatId is required."
-    ).toResponse();
+    return new ChatbotError("bad_request:api", "Parameter chatId is required.").toResponse();
   }
 
   const session = await auth();
@@ -28,12 +25,15 @@ export async function GET(request: Request) {
 
   const chat = await getChatById({ id: chatId });
 
+  // 💡 修复重点：如果数据库没找到聊天记录，不要抛 404 错误！
+  // 直接优雅地返回一个空数组，告诉前端“目前 0 个点赞”
   if (!chat) {
-    return new ChatbotError("not_found:chat").toResponse();
+    return Response.json([], { status: 200 });
   }
 
+  // 💡 安全拦截：如果找到记录但不是本人的，也不报错，返回空
   if (chat.userId !== session.user.id) {
-    return new ChatbotError("forbidden:vote").toResponse();
+    return Response.json([], { status: 200 });
   }
 
   const votes = await getVotesByChatId({ id: chatId });

@@ -23,5 +23,7 @@ yarn-error.log*
 /playwright-report/
 /blob-report/
 /playwright/*
+/artifacts/
+/public/uploads/
 next-env.d.ts
 tsconfig.tsbuildinfo

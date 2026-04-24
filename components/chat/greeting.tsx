@@ -5,11 +5,11 @@ export const Greeting = () => {
     <div className="flex flex-col items-center px-4" key="overview">
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className="text-center font-semibold text-2xl tracking-tight text-foreground md:text-3xl"
+        className="bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-center font-semibold text-2xl tracking-tight text-transparent md:text-3xl"
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.35, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        What can I help with?
+        Enter {"\u7075\u5883"}.
       </motion.div>
       <motion.div
         animate={{ opacity: 1, y: 0 }}
@@ -17,7 +17,7 @@ export const Greeting = () => {
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        Ask a question, write code, or explore ideas.
+        Code, reason, analyze, and compose in one focused surface.
       </motion.div>
     </div>
   );

@@ -15,11 +15,41 @@ import {
 import { useDataStream } from "./data-stream-provider";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
-import { SparklesIcon } from "./icons";
+import { LingJingLogo } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageReasoning } from "./message-reasoning";
 import { PreviewAttachment } from "./preview-attachment";
 import { Weather } from "./weather";
+
+function RepoInfoResultCard({
+  repo,
+}: {
+  repo: {
+    name: string;
+    description: string;
+    stars: number;
+  };
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border/50 bg-card shadow-[var(--shadow-card)]">
+      <div className="border-b border-border/50 px-4 py-3">
+        <div className="font-medium text-[13px] text-foreground">
+          {repo.name}
+        </div>
+        <div className="mt-1 text-[12px] text-muted-foreground">
+          {repo.description}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between px-4 py-3 text-[12px]">
+        <span className="text-muted-foreground">Stars</span>
+        <span className="font-medium text-foreground">
+          {repo.stars.toLocaleString()}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 const PurePreviewMessage = ({
   addToolApprovalResponse,
@@ -71,7 +101,11 @@ const PurePreviewMessage = ({
       {attachmentsFromMessage.map((attachment) => (
         <PreviewAttachment
           attachment={{
-            name: attachment.filename ?? "file",
+            name: String(
+              ("filename" in attachment ? attachment.filename : undefined) ??
+                ("name" in attachment ? attachment.name : undefined) ??
+                "file"
+            ),
             contentType: attachment.mediaType,
             url: attachment.url,
           }}
@@ -218,6 +252,39 @@ const PurePreviewMessage = ({
       );
     }
 
+    if (type === "tool-getRepoInfo") {
+      const { toolCallId, state } = part;
+
+      return (
+        <Tool
+          className="w-[min(100%,450px)]"
+          defaultOpen={true}
+          key={toolCallId}
+        >
+          <ToolHeader state={state} type="tool-getRepoInfo" />
+          <ToolContent>
+            {(state === "input-available" || state === "output-available") && (
+              <ToolInput input={part.input} />
+            )}
+            {state === "output-available" && (
+              <ToolOutput
+                errorText={undefined}
+                output={
+                  "error" in part.output ? (
+                    <div className="rounded border p-2 text-red-500">
+                      Error: {String(part.output.error)}
+                    </div>
+                  ) : (
+                    <RepoInfoResultCard repo={part.output} />
+                  )
+                }
+              />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
+
     if (type === "tool-createDocument") {
       const { toolCallId } = part;
 
@@ -345,8 +412,8 @@ const PurePreviewMessage = ({
       >
         {isAssistant && (
           <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/50">
-              <SparklesIcon size={13} />
+            <div className="flex size-7 items-center justify-center rounded-xl bg-gradient-to-br from-primary/85 to-cyan-300 text-primary-foreground shadow-[var(--shadow-card)] ring-1 ring-primary/15">
+              <LingJingLogo size={13} />
             </div>
           </div>
         )}
@@ -371,8 +438,8 @@ export const ThinkingMessage = () => {
     >
       <div className="flex items-start gap-3">
         <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/50">
-            <SparklesIcon size={13} />
+          <div className="flex size-7 items-center justify-center rounded-xl bg-gradient-to-br from-primary/85 to-cyan-300 text-primary-foreground shadow-[var(--shadow-card)] ring-1 ring-primary/15">
+            <LingJingLogo size={13} />
           </div>
         </div>
 

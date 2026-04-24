@@ -8,13 +8,17 @@ export const isTestEnvironment = Boolean(
     process.env.CI_PLAYWRIGHT
 );
 
-export const guestRegex = /^guest-\d+$/;
+export function shouldUseSecureCookies(requestUrl: string) {
+  return new URL(requestUrl).protocol === "https:";
+}
+
+export const guestRegex = /^guest-[a-z0-9-]+$/i;
 
 export const DUMMY_PASSWORD = generateDummyPassword();
 
 export const suggestions = [
-  "What are the advantages of using Next.js?",
-  "Write code to demonstrate Dijkstra's algorithm",
-  "Help me write an essay about Silicon Valley",
-  "What is the weather in San Francisco?",
+  "Break this product idea into an execution plan",
+  "Read this error and explain the root cause",
+  "Summarize this project as a resume-ready experience",
+  "Turn this rough idea into a clearer product spec",
 ];

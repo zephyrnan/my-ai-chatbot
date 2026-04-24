@@ -1,71 +1,182 @@
-<a href="https://chatbot.ai-sdk.dev/demo">
-  <img alt="Chatbot" src="app/(chat)/opengraph-image.png">
-  <h1 align="center">Chatbot</h1>
-</a>
+# LingJing
 
-<p align="center">
-    Chatbot (formerly AI Chatbot) is a free, open-source template built with Next.js and the AI SDK that helps you quickly build powerful chatbot applications.
-</p>
+LingJing is a full-stack AI workspace built with Next.js 16, React 19, TypeScript, Auth.js, Drizzle, and the AI SDK.
 
-<p align="center">
-  <a href="https://chatbot.ai-sdk.dev/docs"><strong>Read Docs</strong></a> ·
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#model-providers"><strong>Model Providers</strong></a> ·
-  <a href="#deploy-your-own"><strong>Deploy Your Own</strong></a> ·
-  <a href="#running-locally"><strong>Running locally</strong></a>
-</p>
-<br/>
+It supports:
 
-## Features
+- local Ollama models for chat, reasoning, and vision
+- Alibaba DashScope models through an OpenAI-compatible endpoint
+- optional Vercel AI Gateway fallback for other hosted models
+- chat history, guest mode, authentication, file upload, document tools, and E2E coverage
 
-- [Next.js](https://nextjs.org) App Router
-  - Advanced routing for seamless navigation and performance
-  - React Server Components (RSCs) and Server Actions for server-side rendering and increased performance
-- [AI SDK](https://ai-sdk.dev/docs/introduction)
-  - Unified API for generating text, structured objects, and tool calls with LLMs
-  - Hooks for building dynamic chat and generative user interfaces
-  - Supports OpenAI, Anthropic, Google, xAI, and other model providers via AI Gateway
-- [shadcn/ui](https://ui.shadcn.com)
-  - Styling with [Tailwind CSS](https://tailwindcss.com)
-  - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
-- Data Persistence
-  - [Neon Serverless Postgres](https://vercel.com/marketplace/neon) for saving chat history and user data
-  - [Vercel Blob](https://vercel.com/storage/blob) for efficient file storage
-- [Auth.js](https://authjs.dev)
-  - Simple and secure authentication
+## Stack
 
-## Model Providers
+- Next.js App Router
+- React 19
+- TypeScript
+- AI SDK
+- Auth.js
+- Drizzle ORM
+- Postgres
+- Tailwind CSS
+- Playwright
 
-This template uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to access multiple AI models through a unified interface. Models are configured in `lib/ai/models.ts` with per-model provider routing. Included models: Mistral, Moonshot, DeepSeek, OpenAI, and xAI.
+## Model Routing
 
-### AI Gateway Authentication
+The routing layer lives in `lib/ai/providers.ts`.
 
-**For Vercel deployments**: Authentication is handled automatically via OIDC tokens.
+- Models in `LOCAL_CHAT_MODEL_IDS` go to Ollama.
+- Models in `DASHSCOPE_CHAT_MODEL_IDS` go to DashScope.
+- Other model IDs fall back to Vercel AI Gateway.
+- `Auto` mode currently routes:
+  - image requests to `minicpm-v:8b`
+  - text requests to `qwen-plus-2025-07-28` when DashScope is configured
+  - otherwise to local `qwen3:8b`
 
-**For non-Vercel deployments**: You need to provide an AI Gateway API key by setting the `AI_GATEWAY_API_KEY` environment variable in your `.env.local` file.
+Current curated models in this repo:
 
-With the [AI SDK](https://ai-sdk.dev/docs/introduction), you can also switch to direct LLM providers like [OpenAI](https://openai.com), [Anthropic](https://anthropic.com), [Cohere](https://cohere.com/), and [many more](https://ai-sdk.dev/providers/ai-sdk-providers) with just a few lines of code.
+- Local: `qwen3:8b`, `deepseek-r1:8b`, `minicpm-v:8b`
+- DashScope: `qwen-plus-2025-07-28`, `qvq-max-2025-03-25`, `qwen-vl-plus-latest`, `qwen-math-turbo`
 
-## Deploy Your Own
+## Environment Variables
 
-You can deploy your own version of Chatbot to Vercel with one click:
+Copy `.env.example` to `.env.local` and fill in the values you need.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/templates/next.js/chatbot)
+Required for normal app usage:
 
-## Running locally
+- `POSTGRES_URL`
+- `AUTH_SECRET`
 
-You will need to use the environment variables [defined in `.env.example`](.env.example) to run Chatbot. It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env` file is all that is necessary.
+Common optional variables:
 
-> Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various AI and authentication provider accounts.
+- `OLLAMA_BASE_URL`
+- `OLLAMA_API_KEY`
+- `DASHSCOPE_API_KEY`
+- `DASHSCOPE_BASE_URL`
+- `AI_GATEWAY_API_KEY`
+- `REDIS_URL`
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_BASE_PATH`
+- `BLOB_READ_WRITE_TOKEN`
 
-1. Install Vercel CLI: `npm i -g vercel`
-2. Link local instance with Vercel and GitHub accounts (creates `.vercel` directory): `vercel link`
-3. Download your environment variables: `vercel env pull`
+Notes:
+
+- If `BLOB_READ_WRITE_TOKEN` is missing, image uploads fall back to `public/uploads` automatically.
+- `REDIS_URL` is only used for production rate limiting.
+- `OPENAI_API_KEY` is only treated as a DashScope key when `DASHSCOPE_BASE_URL` is also set.
+
+## Local Development
+
+1. Install dependencies:
 
 ```bash
 pnpm install
-pnpm db:migrate # Setup database or apply latest database changes
+```
+
+2. Prepare the database:
+
+```bash
+pnpm db:migrate
+```
+
+3. If you want local models, start Ollama and pull the models:
+
+```bash
+ollama serve
+ollama pull qwen3:8b
+ollama pull deepseek-r1:8b
+ollama pull minicpm-v:8b
+```
+
+4. Start the app:
+
+```bash
 pnpm dev
 ```
 
-Your app template should now be running on [localhost:3000](http://localhost:3000).
+Local production preview:
+
+```bash
+pnpm build
+pnpm start
+```
+
+## Deployment
+
+### Option A: Node deployment
+
+Use this when deploying to your own server, Docker host, or a VM.
+
+Required:
+
+- `POSTGRES_URL`
+- `AUTH_SECRET`
+
+Recommended depending on your model strategy:
+
+- local models: `OLLAMA_BASE_URL`, `OLLAMA_API_KEY`
+- DashScope: `DASHSCOPE_API_KEY`, optionally `DASHSCOPE_BASE_URL`
+- gateway models: `AI_GATEWAY_API_KEY`
+- rate limiting: `REDIS_URL`
+
+Run:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+pnpm start
+```
+
+### Option B: Vercel deployment
+
+Use this when you want managed Next.js hosting.
+
+Set these project environment variables in Vercel:
+
+- `POSTGRES_URL`
+- `AUTH_SECRET`
+- `DASHSCOPE_API_KEY` if you use hosted Qwen models
+- `OLLAMA_BASE_URL` if your Vercel app needs to reach a remote Ollama host
+- `AI_GATEWAY_API_KEY` if you keep gateway-only models enabled
+- `REDIS_URL` if you want production rate limiting
+- `BLOB_READ_WRITE_TOKEN` if you want Vercel Blob uploads instead of local fallback
+
+Important deployment notes:
+
+- Vercel cannot run local Ollama on the same instance. If you want Ollama in production, point `OLLAMA_BASE_URL` at another reachable machine.
+- If you only want cloud deployment, disable reliance on local-only models in your runtime configuration.
+- The metadata base URL should match your public domain through `NEXT_PUBLIC_APP_URL`.
+
+## Validation and Regression
+
+Useful commands:
+
+```bash
+pnpm build
+pnpm exec playwright test
+```
+
+The current verification target for this repo is:
+
+- build succeeds on Windows
+- app starts successfully in production mode
+- authentication flow passes
+- chat input and response flow passes
+- model selector flow passes
+- API and suggested action E2E checks pass
+
+## Project Structure
+
+- `app/`: routes, auth, API handlers
+- `components/`: chat UI, document UI, shared primitives
+- `lib/ai/`: model list, provider routing, AI helpers
+- `lib/db/`: schema, queries, migrations
+- `tests/e2e/`: Playwright end-to-end coverage
+
+## Current Runtime Behavior
+
+- guest users can enter and chat without a manual signup step
+- chats are persisted in Postgres
+- uploads use Vercel Blob when available and local disk fallback otherwise
+- local reasoning models expose reasoning output in the UI
+- cloud and local models can coexist in the same selector

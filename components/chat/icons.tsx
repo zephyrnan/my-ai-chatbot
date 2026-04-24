@@ -893,6 +893,42 @@ export const SparklesIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
+export const LingJingLogo = ({ size = 16 }: { size?: number }) => (
+  <svg
+    fill="none"
+    height={size}
+    strokeLinejoin="round"
+    style={{ color: "currentcolor" }}
+    viewBox="0 0 24 24"
+    width={size}
+  >
+    <path
+      d="M12 2.75 19.75 7.2v9.6L12 21.25 4.25 16.8V7.2L12 2.75Z"
+      opacity="0.38"
+      stroke="currentColor"
+      strokeWidth="1.35"
+    />
+    <path
+      d="M8 7.5v8.5h7.25"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M16 7.75 8 15.75"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M12 2.75v18.5"
+      opacity="0.22"
+      stroke="currentColor"
+      strokeWidth="1.15"
+    />
+  </svg>
+);
+
 export const CheckCircleFillIcon = ({ size = 16 }: { size?: number }) => {
   return (
     <svg

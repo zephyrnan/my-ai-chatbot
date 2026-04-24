@@ -1,7 +1,9 @@
+import path from "node:path";
 import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 
 const basePath = process.env.IS_DEMO === "1" ? "/demo" : "";
+const projectRoot = path.resolve(__dirname);
 
 const nextConfig: NextConfig = {
   ...(basePath
@@ -48,6 +50,9 @@ const nextConfig: NextConfig = {
     appNewScrollHandler: true,
     inlineCss: true,
     turbopackFileSystemCacheForDev: true,
+  },
+  turbopack: {
+    root: projectRoot,
   },
 };
 
