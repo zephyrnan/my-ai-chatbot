@@ -1,15 +1,15 @@
-# LingJing
+# 灵境
 
-LingJing is a full-stack AI workspace built with Next.js 16, React 19, TypeScript, Auth.js, Drizzle, and the AI SDK.
+灵境是一个基于 `Next.js 16`、`React 19`、`TypeScript`、`Auth.js`、`Drizzle` 和 `AI SDK` 构建的全栈 AI 工作台。
 
-It supports:
+它目前支持：
 
-- local Ollama models for chat, reasoning, and vision
-- Alibaba DashScope models through an OpenAI-compatible endpoint
-- optional Vercel AI Gateway fallback for other hosted models
-- chat history, guest mode, authentication, file upload, document tools, and E2E coverage
+- 本地 `Ollama` 模型，用于聊天、推理和视觉理解
+- 通过 OpenAI 兼容接口接入阿里云 `DashScope`
+- 可选的 `Vercel AI Gateway` 兜底路由
+- 聊天记录持久化、游客模式、账号登录、文件上传、文档工具和 E2E 测试
 
-## Stack
+## 技术栈
 
 - Next.js App Router
 - React 19
@@ -21,33 +21,33 @@ It supports:
 - Tailwind CSS
 - Playwright
 
-## Model Routing
+## 模型路由
 
-The routing layer lives in `lib/ai/providers.ts`.
+模型路由逻辑集中在 `lib/ai/providers.ts`。
 
-- Models in `LOCAL_CHAT_MODEL_IDS` go to Ollama.
-- Models in `DASHSCOPE_CHAT_MODEL_IDS` go to DashScope.
-- Other model IDs fall back to Vercel AI Gateway.
-- `Auto` mode currently routes:
-  - image requests to `minicpm-v:8b`
-  - text requests to `qwen-plus-2025-07-28` when DashScope is configured
-  - otherwise to local `qwen3:8b`
+- `LOCAL_CHAT_MODEL_IDS` 中的模型走 `Ollama`
+- `DASHSCOPE_CHAT_MODEL_IDS` 中的模型走 `DashScope`
+- 其他模型 ID 会回退到 `Vercel AI Gateway`
+- `Auto` 模式当前的策略是：
+  - 图片请求走 `minicpm-v:8b`
+  - 纯文本请求在配置了 DashScope 时走 `qwen-plus-2025-07-28`
+  - 否则回退到本地 `qwen3:8b`
 
-Current curated models in this repo:
+当前项目内置模型：
 
-- Local: `qwen3:8b`, `deepseek-r1:8b`, `minicpm-v:8b`
-- DashScope: `qwen-plus-2025-07-28`, `qvq-max-2025-03-25`, `qwen-vl-plus-latest`, `qwen-math-turbo`
+- 本地模型：`qwen3:8b`、`deepseek-r1:8b`、`minicpm-v:8b`
+- DashScope 模型：`qwen-plus-2025-07-28`、`qvq-max-2025-03-25`、`qwen-vl-plus-latest`、`qwen-math-turbo`
 
-## Environment Variables
+## 环境变量
 
-Copy `.env.example` to `.env.local` and fill in the values you need.
+把 `.env.example` 复制为 `.env.local`，然后按需填写。
 
-Required for normal app usage:
+正常运行至少需要：
 
 - `POSTGRES_URL`
 - `AUTH_SECRET`
 
-Common optional variables:
+常用可选变量：
 
 - `OLLAMA_BASE_URL`
 - `OLLAMA_API_KEY`
@@ -59,27 +59,27 @@ Common optional variables:
 - `NEXT_PUBLIC_BASE_PATH`
 - `BLOB_READ_WRITE_TOKEN`
 
-Notes:
+说明：
 
-- If `BLOB_READ_WRITE_TOKEN` is missing, image uploads fall back to `public/uploads` automatically.
-- `REDIS_URL` is only used for production rate limiting.
-- `OPENAI_API_KEY` is only treated as a DashScope key when `DASHSCOPE_BASE_URL` is also set.
+- 如果没有配置 `BLOB_READ_WRITE_TOKEN`，图片上传会自动回退到 `public/uploads`
+- `REDIS_URL` 只用于生产环境限流
+- 只有在同时设置了 `DASHSCOPE_BASE_URL` 时，`OPENAI_API_KEY` 才会被当成 DashScope 的兼容 key 使用
 
-## Local Development
+## 本地开发
 
-1. Install dependencies:
+1. 安装依赖：
 
 ```bash
 pnpm install
 ```
 
-2. Prepare the database:
+2. 初始化数据库：
 
 ```bash
 pnpm db:migrate
 ```
 
-3. If you want local models, start Ollama and pull the models:
+3. 如果要使用本地模型，启动 Ollama 并拉取模型：
 
 ```bash
 ollama serve
@@ -88,38 +88,38 @@ ollama pull deepseek-r1:8b
 ollama pull minicpm-v:8b
 ```
 
-4. Start the app:
+4. 启动开发环境：
 
 ```bash
 pnpm dev
 ```
 
-Local production preview:
+本地生产模式预览：
 
 ```bash
 pnpm build
 pnpm start
 ```
 
-## Deployment
+## 部署说明
 
-### Option A: Node deployment
+### 方案一：部署到自己的服务器 / Docker / 虚拟机
 
-Use this when deploying to your own server, Docker host, or a VM.
+适合你自己控制 Node 运行环境的场景。
 
-Required:
+必需变量：
 
 - `POSTGRES_URL`
 - `AUTH_SECRET`
 
-Recommended depending on your model strategy:
+按模型策略补充：
 
-- local models: `OLLAMA_BASE_URL`, `OLLAMA_API_KEY`
-- DashScope: `DASHSCOPE_API_KEY`, optionally `DASHSCOPE_BASE_URL`
-- gateway models: `AI_GATEWAY_API_KEY`
-- rate limiting: `REDIS_URL`
+- 本地模型：`OLLAMA_BASE_URL`、`OLLAMA_API_KEY`
+- DashScope：`DASHSCOPE_API_KEY`，可选 `DASHSCOPE_BASE_URL`
+- Gateway 模型：`AI_GATEWAY_API_KEY`
+- 限流：`REDIS_URL`
 
-Run:
+部署命令：
 
 ```bash
 pnpm install --frozen-lockfile
@@ -127,56 +127,57 @@ pnpm build
 pnpm start
 ```
 
-### Option B: Vercel deployment
+### 方案二：部署到 Vercel
 
-Use this when you want managed Next.js hosting.
+适合直接托管 Next.js 应用。
 
-Set these project environment variables in Vercel:
+建议在 Vercel 项目环境变量中配置：
 
 - `POSTGRES_URL`
 - `AUTH_SECRET`
-- `DASHSCOPE_API_KEY` if you use hosted Qwen models
-- `OLLAMA_BASE_URL` if your Vercel app needs to reach a remote Ollama host
-- `AI_GATEWAY_API_KEY` if you keep gateway-only models enabled
-- `REDIS_URL` if you want production rate limiting
-- `BLOB_READ_WRITE_TOKEN` if you want Vercel Blob uploads instead of local fallback
+- `DASHSCOPE_API_KEY`
+- `OLLAMA_BASE_URL`（如果线上还需要连远程 Ollama）
+- `AI_GATEWAY_API_KEY`
+- `REDIS_URL`
+- `BLOB_READ_WRITE_TOKEN`
+- `NEXT_PUBLIC_APP_URL`
 
-Important deployment notes:
+注意：
 
-- Vercel cannot run local Ollama on the same instance. If you want Ollama in production, point `OLLAMA_BASE_URL` at another reachable machine.
-- If you only want cloud deployment, disable reliance on local-only models in your runtime configuration.
-- The metadata base URL should match your public domain through `NEXT_PUBLIC_APP_URL`.
+- Vercel 不能直接在同一实例里运行本地 Ollama。如果线上还要用 Ollama，`OLLAMA_BASE_URL` 需要指向另一台可访问机器
+- 如果你只想云端部署，建议避免把运行时强依赖放在本地模型上
+- `NEXT_PUBLIC_APP_URL` 应该配置成线上真实域名
 
-## Validation and Regression
+## 验证与回归
 
-Useful commands:
+常用命令：
 
 ```bash
 pnpm build
 pnpm exec playwright test
 ```
 
-The current verification target for this repo is:
+当前项目的回归目标：
 
-- build succeeds on Windows
-- app starts successfully in production mode
-- authentication flow passes
-- chat input and response flow passes
-- model selector flow passes
-- API and suggested action E2E checks pass
+- Windows 下可正常构建
+- 生产模式可以正常启动
+- 认证流程可用
+- 聊天输入和响应链路可用
+- 模型选择器可用
+- API 与建议操作的 E2E 可用
 
-## Project Structure
+## 目录结构
 
-- `app/`: routes, auth, API handlers
-- `components/`: chat UI, document UI, shared primitives
-- `lib/ai/`: model list, provider routing, AI helpers
-- `lib/db/`: schema, queries, migrations
-- `tests/e2e/`: Playwright end-to-end coverage
+- `app/`：页面路由、认证、API 路由
+- `components/`：聊天 UI、文档 UI、基础组件
+- `lib/ai/`：模型配置、Provider 路由、AI 相关工具
+- `lib/db/`：数据库 schema、查询、迁移
+- `tests/e2e/`：Playwright 端到端测试
 
-## Current Runtime Behavior
+## 当前运行特性
 
-- guest users can enter and chat without a manual signup step
-- chats are persisted in Postgres
-- uploads use Vercel Blob when available and local disk fallback otherwise
-- local reasoning models expose reasoning output in the UI
-- cloud and local models can coexist in the same selector
+- 支持游客直接进入聊天
+- 聊天记录持久化到 Postgres
+- 上传优先走 Vercel Blob，未配置时自动回退到本地磁盘
+- 本地推理模型可在前端展示 reasoning 内容
+- 本地模型和云模型可以在同一个模型选择器里共存
