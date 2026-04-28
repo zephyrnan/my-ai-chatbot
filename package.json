@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
+    "dev:clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-clean.ps1",
+    "dev:clean:cmd": "run-dev.cmd",
+    "dev:clean:turbo": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-clean.ps1 -Turbo",
     "build": "tsx lib/db/migrate && next build --webpack",
     "start": "next start",
     "check": "ultracite check",

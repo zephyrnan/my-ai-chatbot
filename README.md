@@ -147,7 +147,7 @@ pnpm start
 - Vercel 不能直接在同一实例里运行本地 Ollama。如果线上还要用 Ollama，`OLLAMA_BASE_URL` 需要指向另一台可访问机器
 - 如果你只想云端部署，建议避免把运行时强依赖放在本地模型上
 - `NEXT_PUBLIC_APP_URL` 应该配置成线上真实域名
-
+ 
 ## 验证与回归
 
 常用命令：

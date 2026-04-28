@@ -278,23 +278,65 @@ function n(num: number): number {
   return Math.ceil(num);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isWeatherAtLocation(value: unknown): value is WeatherAtLocation {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const current = value.current;
+  const currentUnits = value.current_units;
+  const hourly = value.hourly;
+  const daily = value.daily;
+
+  return (
+    typeof value.latitude === "number" &&
+    typeof value.longitude === "number" &&
+    isRecord(current) &&
+    typeof current.time === "string" &&
+    typeof current.temperature_2m === "number" &&
+    isRecord(currentUnits) &&
+    typeof currentUnits.temperature_2m === "string" &&
+    isRecord(hourly) &&
+    Array.isArray(hourly.time) &&
+    hourly.time.length > 0 &&
+    Array.isArray(hourly.temperature_2m) &&
+    hourly.temperature_2m.length > 0 &&
+    isRecord(daily) &&
+    Array.isArray(daily.sunrise) &&
+    daily.sunrise.length > 0 &&
+    Array.isArray(daily.sunset) &&
+    daily.sunset.length > 0
+  );
+}
+
+function getWeatherError(value: unknown): string {
+  if (isRecord(value) && typeof value.error === "string") {
+    return value.error;
+  }
+
+  return "Weather data is unavailable. Please try another location.";
+}
+
+function WeatherUnavailable({ message }: { message: string }) {
+  return (
+    <div className="w-full rounded-2xl border border-border/60 bg-card p-4 shadow-[var(--shadow-card)]">
+      <div className="font-medium text-foreground text-sm">
+        Weather unavailable
+      </div>
+      <div className="mt-1 text-muted-foreground text-sm">{message}</div>
+    </div>
+  );
+}
+
 export function Weather({
   weatherAtLocation = SAMPLE,
 }: {
-  weatherAtLocation?: WeatherAtLocation;
+  weatherAtLocation?: unknown;
 }) {
-  const currentHigh = Math.max(
-    ...weatherAtLocation.hourly.temperature_2m.slice(0, 24)
-  );
-  const currentLow = Math.min(
-    ...weatherAtLocation.hourly.temperature_2m.slice(0, 24)
-  );
-
-  const isDay = isWithinInterval(new Date(weatherAtLocation.current.time), {
-    start: new Date(weatherAtLocation.daily.sunrise[0]),
-    end: new Date(weatherAtLocation.daily.sunset[0]),
-  });
-
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -308,19 +350,36 @@ export function Weather({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  if (!isWeatherAtLocation(weatherAtLocation)) {
+    return <WeatherUnavailable message={getWeatherError(weatherAtLocation)} />;
+  }
+
+  const currentHigh = Math.max(
+    ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
+  );
+  const currentLow = Math.min(
+    ...weatherAtLocation.hourly.temperature_2m.slice(0, 24),
+  );
+
+  const isDay = isWithinInterval(new Date(weatherAtLocation.current.time), {
+    start: new Date(weatherAtLocation.daily.sunrise[0]),
+    end: new Date(weatherAtLocation.daily.sunset[0]),
+  });
+
   const hoursToShow = isMobile ? 5 : 6;
 
   const currentTimeIndex = weatherAtLocation.hourly.time.findIndex(
-    (time) => new Date(time) >= new Date(weatherAtLocation.current.time)
+    (time) => new Date(time) >= new Date(weatherAtLocation.current.time),
   );
+  const displayStartIndex = Math.max(currentTimeIndex, 0);
 
   const displayTimes = weatherAtLocation.hourly.time.slice(
-    currentTimeIndex,
-    currentTimeIndex + hoursToShow
+    displayStartIndex,
+    displayStartIndex + hoursToShow,
   );
   const displayTemperatures = weatherAtLocation.hourly.temperature_2m.slice(
-    currentTimeIndex,
-    currentTimeIndex + hoursToShow
+    displayStartIndex,
+    displayStartIndex + hoursToShow,
   );
 
   const location =
@@ -337,7 +396,7 @@ export function Weather({
         {
           "bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900":
             !isDay,
-        }
+        },
       )}
     >
       <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
@@ -392,7 +451,7 @@ export function Weather({
                     "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-md px-1 py-1.5",
                     {
                       "bg-white/20": isCurrentHour,
-                    }
+                    },
                   )}
                   key={time}
                 >

@@ -1,0 +1,92 @@
+**本地化大模型智能体平台 (AI Agent) - 全栈开发 (独立)** `2026-04 - 至今` **技术栈：** Next.js (App Router), React, Vercel AI SDK, TypeScript, Tailwind CSS, Ollama
+
+**项目描述：** 面向本地私有化部署场景的 AI 智能体应用，基于 Vercel AI SDK 深度集成 Ollama 驱动的大模型（Qwen/DeepSeek），打破纯文本对话局限，实现具备外部 API 调度与流式响应能力的完整 Function Calling 闭环。
+
+**主要工作：**
+
+- **智能体工具链 (Function Calling) 建设：** 打通大模型与外部数据的交互壁垒。使用 Zod 定义严谨的强类型入参 Schema，实现自然语言意图到结构化 JSON 的精准解析。独立开发基于 GitHub API 的检索 Tool，赋予大模型实时联网获取动态数据的能力，有效解决模型幻觉与数据滞后问题。
+- **复杂类型系统与底层链路兜底：** 深入 Vercel AI SDK 源码逻辑，解决因接口响应字段不一致导致的底层多重载泛型（Generics）推导冲突。强制统一 Tool 执行层在全分支（成功/异常）下的数据契约（Shape），彻底消除类型污染，实现强类型闭环。
+- **前后端数据协议重塑与优雅降级：** 重构 Next.js Route Handlers，设计“防御性解析拦截器”平滑转换前端多态交互数据（兼容嵌套 `parts` 与字段差异）。针对无数据库模式下的查询穿透问题，采用优雅降级策略拦截 404 及 500 级联错误，保障前端组件渲染的绝对稳定。
+- **底层工程化与构建故障排查：** 解决现代工程链路中的疑难环境问题。通过分析底层错误堆栈，准确定位由系统路径 UTF-8 字节切割导致的新一代 Rust 驱动器（Turbopack）的 Panic 崩溃，并通过规范化工程目录与重置模块映射（Module Resolution），大幅提升本地构建与热更新（HMR）稳定性。
+
+
+
+
+
+# 项目过程
+
+### 一、 前后端数据协议与接口联调（核心攻坚区）
+
+这是本次耗时最长、但也最体现你全栈能力的地方。前端和后端就像在“跨服聊天”，我们一步步把它们拉回了同一个频道。
+
+#### 1. 空请求导致的 AI SDK 崩溃
+
+- **出没地点**：后端 `app/(chat)/api/chat/route.ts`
+- **案发表现**：后端疯狂报错 `Error [AI_InvalidPromptError]: Invalid prompt: prompt or messages must be defined`。
+- **根本原因**：Next.js 前端在页面初始化或切换时，意外向后端发送了空的 `messages` 数据。Vercel AI SDK 拿到空数据直接罢工崩溃。
+- **解决方式**：增加了**“防御性拦截”**。在拿到 `req.json()` 后，立刻判断 `messages` 是否为空或无效，如果是，则直接拦截并返回 400 错误，保护了大模型不被空数据击穿。
+
+#### 2. 前端解析 400 错误引发的红屏崩溃 (Unexpected token M)
+
+- **出没地点**：前端浏览器控制台 / 后端 `route.ts`
+- **案发表现**：前端页面直接红屏崩溃，报错 `Unexpected token 'M'... is not valid JSON`。之后又报了 `.split() of undefined`。
+- **根本原因**：后端最初拦截空请求时，图省事返回了纯文本 `"Missing..."` 或不规范的 JSON `{ error: "..." }`。但前端 Vercel 模板的拦截器强制要求后端返回标准 JSON，并且里面必须包含 `message` 字段。拿不到就当场崩溃。
+- **解决方式**：将后端的错误响应严格格式化为 `Response.json({ message: "未检测到有效消息" }, { status: 400 })`，完美契合了前端的解析规范。
+
+#### 3. 终极数据结构不匹配（抓包破案）
+
+- **出没地点**：后端 `app/(chat)/api/chat/route.ts`
+- **案发表现**：后端加了拦截后，你正常发消息也一直报 400 错误。
+- **根本原因**：通过在后端打印 `console.log` 抓包发现，因为去除了原版模板的部分封装，前端发来的根本不是 `messages` 数组，而是单数的 `message: { parts: [{ text: "hi" }] }`，并且模型字段叫 `selectedChatModel`。
+- **解决方式**：在后端写了一个**“适配器/翻译官”**。手动提取 `body.message.parts[0].text`，将其重新包装成大模型认识的 `[{ role: "user", content: "hi" }]` 格式。
+
+------
+
+### 二、 强类型系统与大模型工具调用 (Function Calling)
+
+#### 4. 刁钻的 TypeScript 泛型重载冲突
+
+- **出没地点**：后端 `app/(chat)/api/chat/route.ts`（`getRepoInfo` 工具代码内部）
+- **案发表现**：代码被红色波浪线标红，报错 `不能将类型...分配给类型“undefined”`，完全不让编译。
+- **根本原因**：Vercel AI SDK 的类型系统极其严苛。你的 `execute` 请求 GitHub API 时，成功分支返回了 `stars` 字段，而 Catch 失败分支忘了返回。TS 发现结构不一致，直接判定这个 Tool 无效。
+- **解决方式**：
+  1. 强制统一了**数据契约 (Shape)**，让失败和成功分支都返回 `{ name, description, stars }`。
+  2. 为了彻底绕过某些 SDK 版本底层过度的多重载泛型推导，在 `tool({})` 的最外层果断使用了 `as any`，实现了降维打击。
+
+------
+
+### 三、 底层环境与构建工具 Bug
+
+#### 5. Turbopack 的 Rust 恐慌 (Panic)
+
+- **出没地点**：VS Code 终端（Next.js 本地开发服务器）
+- **案发表现**：服务器突然彻底宕机，爆出惊悚的英文：`start byte index 9 is not a char boundary; it is inside '前'`。
+- **根本原因**：非常经典的“中文路径血案”。Next.js 启用的新一代打包器 Turbopack 是用 Rust 写的。Rust 对内存和 UTF-8 字符有严格的字节级安全检查。当它试图处理你包含“前端”两个字的文件夹路径时，正好切碎了汉字的字节，引发系统自毁式防御（Panic）。
+- **解决方式**：将项目上层目录的“前端”重命名为纯英文 `frontend`。
+
+#### 6. 幽灵依赖（Module Not Found）
+
+- **出没地点**：VS Code 终端
+- **案发表现**：改完文件夹名字后，运行报找不到 `next/dist/bin/next`。
+- **根本原因**：`node_modules` 里的二进制链接（Symlink）和缓存还死死记着之前的中文旧路径。
+- **解决方式**：暴躁但有效的清理三连：删除 `node_modules`、删除 `.next` 缓存文件夹，然后重新执行 `pnpm install` 生成全新的依赖地图。
+
+------
+
+### 四、 业务逻辑与优雅降级
+
+#### 7. 幽灵的 404 错误与点赞组件状态崩溃
+
+- **出没地点**：前端浏览器控制台 / `app/api/vote/route.ts`
+- **案发表现**：网页疯狂报错 `GET /api/vote?chatId=xxx 404`，随后组件渲染失败，报 `reading 'state'` 的 TypeError。
+- **根本原因**：我们为了最快体验本地 Ollama，剥离了原模板复杂的存数据库逻辑。此时前端去查“刚才这段聊天的点赞数”，后端的 `getChatById` 查不到数据，于是原封不动地触发了抛出 `404 Not Found` 异常的代码。前端拿到 404 直接崩溃。
+- **解决方式**：引入**优雅降级 (Graceful Degradation)** 策略。修改了 `vote/route.ts`，如果数据库查不到记录，不再抛出异常，而是极其温柔地返回一个状态为 200 的空数组 `[]`。假装“这里有聊天记录，只是现在0个点赞”，瞬间抚平了前端组件的情绪。
+
+------
+
+### 💡 面试复盘核心总结词（请牢记这四个词）
+
+1. **防御性编程 (Defensive Programming)**：你拦截了空请求，防止大模型接口被击穿。
+2. **数据契约对齐 (Schema Alignment)**：你找出了前端发出的 Payload（单数 message/parts）和后端期望的差异，并手工做了转换适配。
+3. **优雅降级 (Graceful Degradation)**：面对缺失数据库记录引发的 404 连环崩溃，你用空数据替代报错，保证了应用可用性。
+4. **底层环境排雷 (Environment Debugging)**：你没有被复杂的 Turbopack Panic 报错吓倒，精准识别了 Rust 字节切割的中文路径问题。

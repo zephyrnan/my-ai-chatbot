@@ -1,0 +1,84 @@
+本地化大模型智能体平台（AI Agent）- 全栈开发（独立）
+时间：2026-04 - 至今
+技术栈：Next.js App Router、React 19、TypeScript、Vercel AI SDK、Tailwind CSS、Ollama、NextAuth、Drizzle/Postgres
+
+一、项目概述
+
+这是一个基于 Next.js 16 和 Vercel AI SDK 改造的本地化 AI Chatbot 项目，目标是将原模板从云端模型调用改造成可本地部署、可接入本地大模型、可扩展工具调用的智能体应用。当前项目已接入 Ollama，本地模型以 qwen3:8b 为默认聊天模型，并保留了登录、聊天记录、投票、工具调用等完整的全栈结构。
+
+二、我本轮实际完成的工作
+
+1. 跑通项目运行链路
+
+- 进入项目目录 `C:\Users\hhn\Desktop\frontend\React\ai-chatbot`，确认这是一个 `Next.js 16 + React 19 + Vercel AI SDK + Drizzle/Postgres + NextAuth` 的全栈项目，而不是纯前端静态站。
+- 检查 `package.json`、`README.md`、`app/(chat)/api/chat/route.ts`、`lib/ai/models.ts`、`app/(auth)/auth.ts`、`lib/db/queries.ts` 等关键入口，确认项目当前已被改造为本地 Ollama 模式。
+- 重新启动开发环境，最终将项目稳定运行在 `http://127.0.0.1:3000`。
+- 识别到工作区处于脏状态，存在未提交改动，因此本轮没有直接修改业务代码，只做运行验证、问题定位和文档补全。
+
+2. 梳理真实的请求链路
+
+- 确认 `/api/chat` 不是匿名直达接口，请求会先经过 `proxy.ts`。
+- 未登录时，`/api/chat` 会被 `proxy.ts` 重定向到 `/api/auth/guest?redirectUrl=/api/chat`，先自动创建 guest 会话，再回到聊天链路。
+- 验证本地 Ollama 服务 `http://127.0.0.1:11434` 正常监听，且本机已安装 `qwen3:8b` 与 `deepseek-r1:8b` 两个模型。
+
+3. 定位 `/api/chat` 首字节偏慢的具体原因
+
+- 初步测试发现，直接请求 `/api/chat` 时首字节有时很快、有时体感很慢，说明问题不能只看 HTTP Header。
+- 进一步区分了三个指标：
+  1. HTTP 首字节时间
+  2. SSE 首个事件时间
+  3. 用户真正看到首个文本 token 的时间
+- 实测结果表明：
+  - `/api/chat` 的 HTTP 首字节并不慢，预热后大约在几十毫秒级。
+  - `/api/chat` 很快就会返回 `start`、`start-step` 等 SSE 事件。
+  - 真正慢的是首个 `text-delta`，也就是用户第一次看到正文的时间。
+
+4. 量化压测与关键结论
+
+- 预热后 `/api/chat` 的网络首字节约为 42ms。
+- 冷启动第一轮真实聊天中：
+  - 首页首字节约 18ms
+  - Guest 登录约 1.03s
+  - `/api/chat` 首字节约 368ms
+  - `/api/chat` 整体响应约 3.86s
+- 使用自定义脚本区分 “首个 SSE 事件” 与 “首个可见文本 token” 后，得到更关键的结论：
+  - `/api/chat` 首个 SSE 事件约 47ms 到 96ms
+  - `/api/chat` 首个 `text-delta` 出现时间在 4.2s 到 22.9s 之间波动
+  - Ollama 原生 `/v1/chat/completions` 的首个内容 token 通常在 2.3s 到 2.7s 左右
+
+5. 根因分析
+
+- 当前聊天路由使用的是 `ollama.chat(model)`。
+- 模型 `qwen3:8b` 在流式输出时会先产生一段 reasoning，再产生最终正文。
+- 但服务端在 `app/(chat)/api/chat/route.ts` 中把 `sendReasoning` 显式设成了 `false`。
+- 结果是：
+  - 后端实际上已经开始流式返回；
+  - 前端也已经收到 SSE；
+  - 只是 reasoning 被隐藏了；
+  - 用户必须等到模型开始生成正文时，界面上才第一次出现文本。
+- 因此，体感上的 “/api/chat 首字节偏慢” 实际上是 “首个可见正文 token 偏慢”，根因主要在模型 thinking 阶段被隐藏，而不是 Next.js 接口本身卡住。
+
+6. 额外发现的次要问题
+
+- `app/layout.tsx` 使用 `next/font/google` 引入 `Geist`、`Geist Mono`。
+- 当前网络环境无法稳定访问 Google Fonts，Next 开发日志中持续出现字体下载失败警告。
+- 这会影响页面冷启动和开发时日志噪音，但不是 `/api/chat` 正文首 token 延迟的主因。
+
+三、这轮工作的价值
+
+1. 把“接口慢”拆成了更准确的三个层次：HTTP 首字节、SSE 首事件、首个可见文本 token。
+2. 证明了问题不在 Next.js 路由本身，也不在网络传输层，而在模型输出策略与前端展示策略之间的错位。
+3. 通过基准测试确认：当前真正影响用户体验的不是接口是否返回，而是 reasoning 被隐藏后形成的“长时间空白等待”。
+4. 给后续优化指明了明确方向：
+   - 方案 A：保留 reasoning，并将 reasoning 流式显示给前端。
+   - 方案 B：关闭或降低本地模型 thinking 行为，优先尽快输出正文。
+
+四、我本轮没有做的事
+
+- 没有直接修改项目业务代码。
+- 没有清理用户已有的未提交改动。
+- 没有重构现有路由和前端逻辑，只完成了启动、验证、量化和定位。
+
+五、面试/复盘可直接表达的总结
+
+在这次项目调试中，我没有停留在“接口慢”的表面现象，而是把问题拆成 HTTP 首字节、SSE 首事件和首个可见文本 token 三层来定位。最终发现 Next.js 的 `/api/chat` 本身返回很快，真正慢的是本地模型 `qwen3:8b` 先输出 reasoning，而服务端又配置了 `sendReasoning: false`，导致前端长时间收不到可见正文，形成了“接口很慢”的错觉。这个过程体现了我在全栈链路排查、性能诊断和 AI 应用调优上的能力。

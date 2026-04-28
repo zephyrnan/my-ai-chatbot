@@ -6,6 +6,7 @@ const basePath = process.env.IS_DEMO === "1" ? "/demo" : "";
 const projectRoot = path.resolve(__dirname);
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["localhost", "127.0.0.1", "192.168.31.153"],
   ...(basePath
     ? {
         basePath,
